@@ -1,0 +1,40 @@
+version: "3.9"
+
+services:
+  spark:
+    image: bitnami/spark:3.5.0
+    container_name: spark
+    environment:
+      - SPARK_MODE=master
+    ports:
+      - "7077:7077"   # Spark master
+      - "8080:8080"   # Spark master UI
+    volumes:
+      - ./:/data       # Map current folder to /data in container
+
+  spark-worker:
+    image: bitnami/spark:3.5.0
+    container_name: spark-worker
+    depends_on:
+      - spark
+    environment:
+      - SPARK_MODE=worker
+      - SPARK_MASTER_URL=spark://spark:7077
+    ports:
+      - "8081:8081"   # Worker UI
+    volumes:
+      - ./:/data
+
+  jupyter:
+    image: jupyter/pyspark-notebook:spark-3.5.0
+    container_name: jupyter
+    ports:
+      - "8888:8888"
+    environment:
+      - PYSPARK_PYTHON=python3
+      - SPARK_MASTER=spark://spark:7077
+    command: start-notebook.sh --NotebookApp.token='' --NotebookApp.password=''
+    volumes:
+      - ./:/home/jovyan/work  # Map your folder so notebooks + CSV are accessible
+    depends_on:
+      - spark
